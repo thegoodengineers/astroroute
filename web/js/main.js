@@ -218,13 +218,7 @@ function maybeDetect(now) {
 function drawLightCurve() {
   const { time, flux } = S.data, xs = [], ys = [];
   for (let i = 0; i < time.length; i++) if (S.got[i]) { xs.push(time[i]); ys.push(flux[i]); }
-  const marks = [];
-  const best = S.det.res?.r.best;
-  if (best) {
-    const n0 = Math.ceil((time[0] - best.t0) / best.period), n1 = Math.floor((time[time.length - 1] - best.t0) / best.period);
-    if (n1 - n0 < 40) for (let n = n0; n <= n1; n++) marks.push({ x: best.t0 + n * best.period, color: "rgba(127,209,255,.18)" });
-  }
-  drawChart($("lc"), { ...S.lcBox, dots: [{ x: xs, y: ys, color: "rgba(127,209,255,.75)", size: 1.6 }], marks,
+  drawChart($("lc"), { ...S.lcBox, dots: [{ x: xs, y: ys, color: "rgba(127,209,255,.75)", size: 1.6 }],
     empty: xs.length ? "" : "Waiting for the first packets…" });
   const M = time.length;
   $("recvBar").style.width = `${(100 * S.received) / M}%`;

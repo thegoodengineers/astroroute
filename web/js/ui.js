@@ -248,7 +248,9 @@ export function drawMap(cv, v) {
     const [dx, dy] = spots[k];
     boxes.push([x + dx, y + dy, x + dx + tw, y + dy + th]);
     ctx.textAlign = "left"; ctx.textBaseline = "top";
-    ctx.fillStyle = n.kind === "relay" ? (onBest.has(n.id) ? "#CFEFFF" : "rgba(170,181,199,.85)") : C.text;
+    ctx.lineWidth = 3; ctx.lineJoin = "round"; ctx.strokeStyle = "rgba(5,7,13,.85)"; // halo keeps labels legible over links
+    ctx.strokeText(n.name, x + dx, y + dy + 1);
+    ctx.fillStyle = n.kind === "relay" ? (onBest.has(n.id) ? "#CFEFFF" : "rgba(170,181,199,.9)") : C.text;
     ctx.fillText(n.name, x + dx, y + dy + 1);
     const wait = v.waiting.get(n.id);
     if (wait) badge(ctx, x - 20, y + (dy < 0 ? 22 : -22), n.kind === "observatory" ? `${wait} buffered` : `${wait} waiting`, C.amber);

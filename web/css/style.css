@@ -57,7 +57,9 @@ h2 { margin: 0; font-size: 10.5px; font-weight: 650; letter-spacing: .14em; text
 .kind.candidate { color: var(--amber); border-color: rgba(255, 181, 71, .35); }
 
 /* ---------- layout ---------- */
-.layout { display: grid; grid-template-columns: minmax(0, 1fr) 476px; gap: 12px; padding: 12px; min-height: 0; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 476px; grid-template-rows: minmax(0, 1fr); gap: 12px; padding: 12px; min-height: 0; }
+.left { display: flex; flex-direction: column; gap: 12px; min-height: 0; min-width: 0; }
+.left .map-panel { flex: 1; }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
 .side { display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
 .card { padding: 13px 15px; }
@@ -92,11 +94,11 @@ h2 { margin: 0; font-size: 10.5px; font-weight: 650; letter-spacing: .14em; text
 .switch input:checked + span::after { transform: translateX(11px); background: var(--accent); }
 .switch input:checked ~ * { color: var(--text); }
 .switch input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
-.stats { display: grid; grid-template-columns: 1.15fr 1.15fr .8fr 1fr .95fr; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.stats { display: grid; grid-template-columns: 1.1fr 1.25fr .7fr 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .stat { background: #0C1224; padding: 8px 9px 9px; min-width: 0; }
-.stat > span { display: block; font-size: 9.5px; white-space: nowrap; color: var(--muted); text-transform: uppercase; letter-spacing: .09em; margin-bottom: 3px; }
+.stat > span { display: block; font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); text-transform: uppercase; letter-spacing: .09em; margin-bottom: 3px; }
 .stat b { display: block; font: 600 19px/1.1 var(--mono); color: var(--text); white-space: nowrap; }
-.stat > span i { font-style: normal; text-transform: none; letter-spacing: 0; opacity: .75; }
+.stat b i { font: 400 10px var(--mono); font-style: normal; color: var(--muted); margin-left: 3px; }
 .route-line { display: flex; align-items: center; gap: 10px; margin-top: 11px; min-width: 0; }
 .path { font-size: 12px; color: #CFEFFF; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .alt-line { margin-top: 6px; font-size: 11.5px; color: var(--amber); opacity: .9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -110,9 +112,9 @@ h2 { margin: 0; font-size: 10.5px; font-weight: 650; letter-spacing: .14em; text
 .pill.down { color: var(--red); border-color: rgba(255, 107, 107, .5); background: rgba(255, 107, 107, .12); animation: blink 1.1s infinite; }
 
 /* ---------- event log ---------- */
-.log { flex: 1 1 130px; min-height: 130px; display: flex; flex-direction: column; }
+.log { flex: 0 0 210px; min-height: 0; overflow: hidden; display: flex; flex-direction: column; padding-bottom: 8px; }
 #log { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 0; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
-#log li { display: grid; grid-template-columns: 54px 7px 1fr; gap: 8px; align-items: baseline; padding: 5px 2px; border-top: 1px solid rgba(28, 37, 64, .7); font-size: 11.5px; line-height: 1.4; }
+#log li { display: grid; grid-template-columns: 54px 7px 1fr; gap: 8px; align-items: baseline; padding: 4px 2px; border-top: 1px solid rgba(28, 37, 64, .7); font-size: 11.5px; line-height: 1.4; }
 #log li:first-child { border-top: 0; }
 #log time { font: 10.5px var(--mono); color: var(--muted); }
 #log i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
@@ -166,7 +168,9 @@ figcaption span { text-transform: none; letter-spacing: 0; opacity: .7; margin-l
 @media (max-width: 1280px) {
   .layout { grid-template-columns: minmax(0, 1fr) 392px; }
   .brand small { display: none; }
-  .stat b { font-size: 16px; }
+  .stat b { font-size: 15px; }
+  .stat > span { font-size: 9px; letter-spacing: .03em; }
+  .stat b i { font-size: 9px; margin-left: 2px; }
   .checks li { grid-template-columns: 16px 92px 1fr; }
 }
 @media (max-width: 1100px) {
@@ -176,6 +180,7 @@ figcaption span { text-transform: none; letter-spacing: 0; opacity: .7; margin-l
   .legend { font-size: 10.5px; gap: 4px 10px; }
 }
 @media (max-height: 820px) {
+  .log { flex-basis: 150px; }
   .chart { height: 70px; }
   .chart.lc { height: 88px; }
 }
