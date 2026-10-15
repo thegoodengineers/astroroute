@@ -1,0 +1,74 @@
+[
+ {
+  "slug": "kepler-6",
+  "target": "Kepler-6",
+  "mission": "Kepler",
+  "kind": "planet",
+  "publishedPeriod": 3.2346996,
+  "points": 2093
+ },
+ {
+  "slug": "kepler-17",
+  "target": "Kepler-17",
+  "mission": "Kepler",
+  "kind": "planet",
+  "publishedPeriod": 1.4857108,
+  "points": 5694
+ },
+ {
+  "slug": "tres-2",
+  "target": "TrES-2",
+  "mission": "Kepler",
+  "kind": "planet",
+  "publishedPeriod": 2.47063,
+  "points": 2093
+ },
+ {
+  "slug": "hat-p-7",
+  "target": "HAT-P-7",
+  "mission": "Kepler",
+  "kind": "planet",
+  "publishedPeriod": 2.20474,
+  "points": 2093
+ },
+ {
+  "slug": "wasp-18",
+  "target": "WASP-18",
+  "mission": "TESS",
+  "kind": "planet",
+  "publishedPeriod": 0.94145223,
+  "points": 5660
+ },
+ {
+  "slug": "wasp-43",
+  "target": "WASP-43",
+  "mission": "TESS",
+  "kind": "planet",
+  "publishedPeriod": 0.813475,
+  "points": 5348
+ },
+ {
+  "slug": "kic-6756669",
+  "target": "KIC 6756669",
+  "mission": "Kepler",
+  "kind": "false_positive",
+  "publishedPeriod": 5.851520671,
+  "points": 5693
+ },
+ {
+  "slug": "kic-8801343",
+  "target": "KIC 8801343",
+  "mission": "Kepler",
+  "kind": "false_positive",
+  "publishedPeriod": 2.73987398,
+  "points": 2093
+ },
+ {
+  "slug": "toi-1163-01",
+  "target": "TOI-1163.01",
+  "mission": "TESS",
+  "kind": "candidate",
+  "publishedPeriod": 3.0771612,
+  "points": 4309
+ }
+]
