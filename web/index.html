@@ -1,5 +1,103 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AstroRoute</title><link rel="stylesheet" href="css/style.css"></head>
-<body><h1>AstroRoute</h1><script type="module" src="js/main.js"></script></body>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AstroRoute — mission control</title>
+<meta name="description" content="Deep-space relay routing around asteroid swarms, with live exoplanet detection on the received light curve.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%237FD1FF' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23FFE2A8'/%3E%3Ccircle cx='26' cy='12' r='3' fill='%237FD1FF'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><circle cx="16" cy="16" r="11" fill="none" stroke="#7FD1FF" stroke-width="1.6" opacity=".55"/><circle cx="16" cy="16" r="3" fill="#FFE2A8"/><circle cx="26.5" cy="12" r="2.8" fill="#7FD1FF"/><path d="M5.5 20 L26.5 12" stroke="#7FD1FF" stroke-width="1.2" stroke-dasharray="2 2" opacity=".8"/></svg>
+    <span>AstroRoute</span><small>Exoplanet Hunter · deep-space relay</small>
+  </div>
+  <div class="picker" id="picker">
+    <button type="button" class="btn picker-btn" id="pickerBtn" aria-haspopup="listbox" aria-expanded="false" title="Choose the star to observe">
+      <span class="pk-dot"></span><span class="pk-text"><b id="pickerLabel">Loading…</b><small id="pickerSub"></small></span>
+      <svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    </button>
+    <div class="menu" id="pickerMenu" role="listbox" aria-label="Target star" hidden></div>
+  </div>
+  <div class="grp">
+    <button type="button" class="btn icon" id="play" aria-label="Play / pause"></button>
+    <div class="seg" id="speed" role="group" aria-label="Simulation speed">
+      <button type="button" data-speed="1">1x</button><button type="button" data-speed="4">4x</button><button type="button" data-speed="16">16x</button>
+    </div>
+  </div>
+  <div class="grp">
+    <button type="button" class="btn tool" data-tool="asteroid" title="Then click on the map">
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="5" cy="6" r="2" fill="currentColor"/><circle cx="10.5" cy="4.5" r="1.4" fill="currentColor"/><circle cx="9" cy="10" r="2.4" fill="currentColor"/><circle cx="3.8" cy="11.5" r="1.1" fill="currentColor"/><circle cx="13" cy="9" r="1" fill="currentColor"/></svg>
+      Drop asteroid swarm</button>
+    <button type="button" class="btn tool" data-tool="comet" title="Then click on the map">
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="11.5" cy="4.5" r="2.4" fill="currentColor"/><path d="M9.6 6.2 2 14M10.6 7 5 13.5M8.6 5.4 2.5 10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".6"/></svg>
+      Launch comet</button>
+  </div>
+  <div class="spacer"></div>
+  <button type="button" class="btn ghost" id="reset" title="Restart the scenario">
+    <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M3 8a5 5 0 1 0 1.6-3.7M3 2.5v2.8h2.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Reset</button>
+</header>
+
+<main class="layout">
+  <section class="panel map-panel" id="mapPanel" aria-label="Network map">
+    <canvas id="map"></canvas>
+    <div class="map-head"><h2>Network map</h2><span class="mono" id="clock">T+0.0d</span><span class="muted">heliocentric · AU</span></div>
+    <div class="hint" id="hint" hidden></div>
+    <div class="caption" id="caption" hidden></div>
+    <div class="legend">
+      <span><i class="lg best"></i>Best path</span>
+      <span><i class="lg alt"></i>Backup path</span>
+      <span><i class="lg pkt"></i>Data packet</span>
+      <span><i class="lg snr"></i>Link SNR</span>
+      <span><i class="lg fc"></i>Will be jammed</span>
+      <span><i class="lg jam"></i>Jamming cloud</span>
+    </div>
+  </section>
+
+  <aside class="side" id="side">
+    <section class="panel card route" aria-label="Route">
+      <div class="card-head">
+        <h2>Route</h2>
+        <div class="head-ctl">
+          <div class="seg small" id="mode" role="group" aria-label="Routing mode">
+            <button type="button" data-mode="fastest" class="on" title="Minimum light-time">Fastest</button><button type="button" data-mode="reliable" title="Light-time plus a penalty for weak links">Reliable</button><button type="button" data-mode="throughput" title="Widest path: largest bottleneck Shannon capacity">Max throughput</button>
+          </div>
+          <label class="switch" title="Avoid links forecast to be jammed within 1 day"><input type="checkbox" id="predictive" checked><span></span>Predictive</label>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat"><span>Latency <i>min</i></span><b id="latency">—</b></div>
+        <div class="stat"><span>Throughput <i>Mbps</i></span><b id="capacity">—</b></div>
+        <div class="stat"><span>Hops</span><b id="hops">—</b></div>
+        <div class="stat"><span>Min SNR <i>dB</i></span><b id="snr">—</b></div>
+        <div class="stat"><span>Reroutes</span><b id="reroutes">0</b></div>
+      </div>
+      <div class="route-line"><span class="pill up" id="pill">LINK UP</span><span class="path" id="path"></span></div>
+      <div class="alt-line" id="alt"></div>
+      <div class="meta-line mono"><span>buffered <b id="buffered">0</b></span><span>in flight <b id="inflight">0</b></span><span>packets <b id="delivered">0</b></span><span class="split" id="rerouteSplit"></span></div>
+    </section>
+
+    <section class="panel card log" aria-label="Event log">
+      <div class="card-head"><h2>Event log</h2><span class="muted small">newest first</span></div>
+      <ol id="log"></ol>
+    </section>
+
+    <section class="panel card detect" aria-label="Detection">
+      <div class="card-head"><h2>Detection</h2><span class="muted small" id="targetMeta"></span></div>
+      <div class="recv"><div class="bar"><i id="recvBar"></i></div><span class="mono" id="recvText">received 0 of 0 points</span></div>
+      <canvas class="chart lc" id="lc" aria-label="Received light curve"></canvas>
+      <div class="pair">
+        <figure><figcaption>Periodogram <span>BLS power vs period</span></figcaption><canvas class="chart" id="pg"></canvas></figure>
+        <figure><figcaption>Folded transit <span>hours from mid-transit</span></figcaption><canvas class="chart" id="fold"></canvas></figure>
+      </div>
+      <div class="verdict wait" id="verdict"><div class="v-word" id="vWord">NEED MORE DATA</div><div class="v-sub mono" id="vSub">Waiting for packets from the Observatory…</div></div>
+      <ul class="checks" id="checks"></ul>
+    </section>
+  </aside>
+</main>
+<script type="module" src="js/main.js"></script>
+</body>
 </html>
