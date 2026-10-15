@@ -3,154 +3,220 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#070A12">
   <title>AstroRoute</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23070A12'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%237FD1FF' stroke-width='2' opacity='.45'/%3E%3Ccircle cx='16' cy='16' r='3.5' fill='%237FD1FF'/%3E%3Ccircle cx='24' cy='11' r='2' fill='%23E6EDF3'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="light">
+<body>
+  <!-- One stroke icon family, 24px grid, 1.75 stroke; referenced with <use href="#i-…"> -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 5.5v13l11-6.5z" fill="currentColor" stroke="none"/></symbol>
+      <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6.5" y="5" width="4" height="14" rx="1" fill="currentColor" stroke="none"/><rect x="13.5" y="5" width="4" height="14" rx="1" fill="currentColor" stroke="none"/></symbol>
+      <symbol id="i-swarm" viewBox="0 0 24 24"><circle cx="8" cy="9" r="3"/><circle cx="16" cy="7" r="1.6"/><circle cx="15" cy="15" r="2.6"/><circle cx="7.5" cy="17" r="1.4"/></symbol>
+      <symbol id="i-comet" viewBox="0 0 24 24"><circle cx="16.5" cy="7.5" r="3"/><path d="M14.3 9.7 4 20M12.4 7.3 6 11M16.7 11.6 13 18"/></symbol>
+      <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></symbol>
+      <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
+      <symbol id="i-heat" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 12h16M12 4v16"/><rect x="12" y="4" width="8" height="8" fill="currentColor" opacity=".35" stroke="none"/></symbol>
+    </defs>
+  </svg>
+
+  <a class="skip-link" href="#side">Skip to mission panels</a>
+
   <header class="topbar">
-    <div class="brand"><span class="brand-dot"></span>AstroRoute</div>
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">AstroRoute</span>
+    </div>
 
     <div class="picker" id="picker">
-      <button class="btn picker-btn" id="picker-btn" aria-haspopup="listbox" aria-expanded="false" aria-controls="picker-menu">
-        <span class="muted">Target</span> <span id="picker-label">Loading…</span> <span class="caret">▾</span>
+      <button class="picker-btn" id="picker-btn" aria-haspopup="listbox" aria-expanded="false" aria-controls="picker-menu">
+        <span class="picker-k">Target</span>
+        <span class="picker-v" id="picker-label">Loading…</span>
+        <svg class="icon caret" aria-hidden="true"><use href="#i-chevron"/></svg>
       </button>
       <div class="picker-menu" id="picker-menu" role="listbox" aria-label="Observation target" hidden></div>
     </div>
 
-    <div class="group">
-      <button class="btn" id="play-btn" aria-pressed="false">▶ Play</button>
-      <div class="seg" id="speed-seg" role="group" aria-label="Speed">
-        <button class="seg-btn active" data-speed="1">1x</button>
-        <button class="seg-btn" data-speed="4">4x</button>
-        <button class="seg-btn" data-speed="16">16x</button>
+    <div class="toolbar" role="toolbar" aria-label="Simulation controls">
+      <div class="tool-group">
+        <button class="btn btn-primary" id="play-btn" aria-pressed="false">
+          <svg class="icon" aria-hidden="true"><use href="#i-play"/></svg><span class="btn-label">Play</span>
+        </button>
+        <div class="seg" id="speed-seg" role="group" aria-label="Simulation speed">
+          <button class="seg-btn active" data-speed="1" aria-label="Speed 1x">1×</button>
+          <button class="seg-btn" data-speed="4" aria-label="Speed 4x">4×</button>
+          <button class="seg-btn" data-speed="16" aria-label="Speed 16x">16×</button>
+        </div>
       </div>
-    </div>
 
-    <div class="group">
-      <button class="btn tool" id="tool-swarm" data-tool="asteroid" aria-pressed="false">☄ Drop asteroid swarm</button>
-      <button class="btn tool" id="tool-comet" data-tool="comet" aria-pressed="false">✦ Launch comet</button>
-      <button class="btn" id="reset-btn">↺ Reset</button>
-    </div>
+      <div class="tool-group" role="group" aria-label="Disrupt the network">
+        <button class="btn tool" id="tool-swarm" data-tool="asteroid" aria-pressed="false" title="Then click the map to place it">
+          <svg class="icon" aria-hidden="true"><use href="#i-swarm"/></svg><span class="btn-label">Drop asteroid swarm</span><span class="btn-label-short">Swarm</span>
+        </button>
+        <button class="btn tool" id="tool-comet" data-tool="comet" aria-pressed="false" title="Then click the map to place it">
+          <svg class="icon" aria-hidden="true"><use href="#i-comet"/></svg><span class="btn-label">Launch comet</span><span class="btn-label-short">Comet</span>
+        </button>
+      </div>
 
-    <div class="spacer"></div>
-    <div class="group">
-      <button class="btn" id="heatmap-btn" aria-pressed="false" title="Toggle signal attenuation heatmap">⬡ Heatmap</button>
+      <button class="btn btn-ghost" id="reset-btn" title="Restart the transmission and clear debris">
+        <svg class="icon" aria-hidden="true"><use href="#i-reset"/></svg><span class="btn-label">Reset</span>
+      </button>
     </div>
-    <div class="diversity mono" id="diversity" title="Node-disjoint paths (path diversity)">paths: —</div>
-    <div class="clock mono" id="clock">T+0.0 d</div>
   </header>
 
   <main class="layout">
-    <section class="panel map-panel">
-      <div class="panel-head">
-        <h2>Network map</h2>
-        <div class="legend">
-          <span><i class="sw sw-best"></i>best path</span>
-          <span><i class="sw sw-alt"></i>alternate</span>
-          <span><i class="sw sw-jam"></i>jamming</span>
-          <span><i class="sw sw-ahead"></i>will be jammed</span>
-          <span><i class="sw sw-link"></i>link SNR</span>
-        </div>
-      </div>
+    <section class="map-panel" aria-label="Network map">
       <div class="map-wrap">
-        <canvas id="map" style="display:block;width:100%;height:100%"></canvas>
+        <canvas id="map" role="img" aria-label="3D map of the relay network between the observatory and Earth"></canvas>
         <canvas id="heat" class="heat" aria-hidden="true" hidden></canvas>
-        <div class="map-hint" id="map-hint" hidden></div>
+
+        <div class="map-hud map-hud-tl">
+          <h1 class="map-title">Network map</h1>
+          <dl class="hud-stats">
+            <div><dt>Mission time</dt><dd class="mono" id="clock">T+0.00 d</dd></div>
+            <div><dt>In flight</dt><dd class="mono" id="inflight">0</dd></div>
+            <div title="Node-disjoint paths from the observatory to Earth">
+              <dt>Disjoint paths</dt>
+              <dd class="mono"><span class="dots" id="diversity-dots" aria-hidden="true"></span><span id="diversity">—</span></dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="map-hud map-hud-tr">
+          <button class="chip-btn" id="heatmap-btn" aria-pressed="false" title="Overlay the jamming strength of the debris">
+            <svg class="icon" aria-hidden="true"><use href="#i-heat"/></svg>Jamming heatmap
+          </button>
+        </div>
+
+        <ul class="legend map-hud map-hud-bl" aria-label="Map legend">
+          <li><i class="sw sw-best"></i>Best path</li>
+          <li><i class="sw sw-alt"></i>Alternate</li>
+          <li><i class="sw sw-jam"></i>Jamming</li>
+          <li><i class="sw sw-ahead"></i>Will be jammed</li>
+          <li><i class="sw sw-link"></i>Link SNR</li>
+        </ul>
+
+        <div class="map-hint" id="map-hint" role="status" hidden></div>
       </div>
     </section>
 
-    <aside class="side">
-      <section class="panel card">
-        <div class="panel-head">
-          <h2>Route</h2>
-          <div class="group">
-            <button class="switch on" id="predict-btn" aria-pressed="true" title="Avoid links forecast to be jammed within 1 day">
-              <span class="knob"></span>Predictive
-            </button>
-            <div class="seg" id="mode-seg" role="group" aria-label="Routing mode">
-              <button class="seg-btn active" data-mode="fastest">Fastest</button>
-              <button class="seg-btn" data-mode="reliable">Reliable</button>
-              <button class="seg-btn" data-mode="throughput">Max throughput</button>
-            </div>
-          </div>
-        </div>
-        <div class="route-head">
-          <div class="pill" id="link-pill">LINK UP</div>
-          <div class="route-path mono" id="route-path">—</div>
-        </div>
+    <aside class="side" id="side" aria-label="Mission panels" tabindex="-1">
+      <section class="card card-link" data-tab="route" aria-labelledby="link-title">
+        <header class="card-head">
+          <h2 id="link-title">Signal link</h2>
+          <span class="pill up" id="link-pill" role="status" aria-live="polite">LINK UP</span>
+        </header>
+
+        <p class="route-path mono" id="route-path">—</p>
+
         <div class="stats">
-          <div class="stat"><div class="stat-v mono" id="st-latency">—</div><div class="stat-k">latency (min)</div></div>
-          <div class="stat"><div class="stat-v mono" id="st-tput">—</div><div class="stat-k">throughput (Mbps)</div></div>
-          <div class="stat"><div class="stat-v mono" id="st-hops">—</div><div class="stat-k">hops</div></div>
-          <div class="stat"><div class="stat-v mono" id="st-snr">—</div><div class="stat-k">min SNR (dB)</div></div>
-          <div class="stat"><div class="stat-v mono" id="st-reroutes">0</div><div class="stat-k" id="st-reroutes-k">reroutes</div></div>
+          <div class="stat stat-lg"><span class="stat-v mono" id="st-latency" data-unit="min">—</span><span class="stat-k">Latency</span></div>
+          <div class="stat stat-lg"><span class="stat-v mono" id="st-tput" data-unit="Mbps">—</span><span class="stat-k">Throughput</span></div>
+          <div class="stat stat-lg"><span class="stat-v mono" id="st-snr" data-unit="dB">—</span><span class="stat-k">Weakest hop</span></div>
+          <div class="stat"><span class="stat-v mono" id="st-hops">—</span><span class="stat-k">Hops</span></div>
+          <div class="stat stat-wide"><span class="stat-v mono" id="st-reroutes">0</span><span class="stat-k" id="st-reroutes-k">reroutes</span></div>
         </div>
-        <div class="alt-line mono" id="alt-line">alternate: —</div>
-        <div id="hop-threats" class="hop-threats"></div>
+
+        <div class="hop-threats" id="hop-threats" aria-label="Signal strength per hop"></div>
+        <p class="alt-line" id="alt-line">alternate: —</p>
+
+        <div class="card-controls">
+          <div class="seg seg-fill" id="mode-seg" role="group" aria-label="Routing mode">
+            <button class="seg-btn active" data-mode="fastest">Fastest</button>
+            <button class="seg-btn" data-mode="reliable">Reliable</button>
+            <button class="seg-btn" data-mode="throughput">Max throughput</button>
+          </div>
+          <button class="switch on" id="predict-btn" aria-pressed="true" aria-describedby="predict-hint">
+            <span class="knob" aria-hidden="true"></span>Predictive routing
+          </button>
+          <span class="ctrl-hint" id="predict-hint">Leaves a link before debris jams it (1-day forecast)</span>
+        </div>
       </section>
 
-      <section class="panel card">
-        <div class="panel-head"><h2>Event log</h2><span class="muted mono" id="log-count">0</span></div>
-        <ol class="log" id="log"></ol>
-      </section>
+      <section class="card card-detect" data-tab="detect" aria-labelledby="detect-title">
+        <header class="card-head">
+          <h2 id="detect-title">Exoplanet detection</h2>
+          <span class="card-meta" id="det-target">—</span>
+        </header>
 
-      <section class="panel card">
-        <div class="panel-head"><h2>Detection</h2><span class="muted mono" id="det-target">—</span></div>
-        <div class="chart-label">Received light curve</div>
-        <canvas class="chart chart-lc" id="chart-lc"></canvas>
-        <div class="progress"><div class="progress-bar" id="recv-bar"></div></div>
-        <div class="progress-text mono" id="recv-text">received 0 of 0 points</div>
+        <div class="verdict" id="verdict" role="status" aria-live="polite">
+          <span class="verdict-k">Verdict</span>
+          <span class="verdict-v" id="verdict-v">WAITING FOR DATA</span>
+          <span class="verdict-sub mono" id="verdict-sub"></span>
+        </div>
+
+        <div class="progress-row">
+          <div class="progress"><div class="progress-bar" id="recv-bar"></div></div>
+          <span class="progress-text mono" id="recv-text">received 0 of 0 points</span>
+        </div>
+
+        <figure class="chart-fig">
+          <figcaption class="chart-label">Received light curve</figcaption>
+          <canvas class="chart chart-lc" id="chart-lc" role="img" aria-label="Light curve points received so far"></canvas>
+        </figure>
         <div class="chart-row">
-          <div>
-            <div class="chart-label">Periodogram</div>
-            <canvas class="chart chart-sm" id="chart-pg"></canvas>
-          </div>
-          <div>
-            <div class="chart-label">Folded transit</div>
-            <canvas class="chart chart-sm" id="chart-fold"></canvas>
-          </div>
+          <figure class="chart-fig">
+            <figcaption class="chart-label">Periodogram</figcaption>
+            <canvas class="chart chart-sm" id="chart-pg" role="img" aria-label="BLS periodogram"></canvas>
+          </figure>
+          <figure class="chart-fig">
+            <figcaption class="chart-label">Folded transit</figcaption>
+            <canvas class="chart chart-sm" id="chart-fold" role="img" aria-label="Light curve folded at the best period"></canvas>
+          </figure>
         </div>
-        <div class="verdict" id="verdict">
-          <div class="verdict-k">Verdict</div>
-          <div class="verdict-v" id="verdict-v">WAITING FOR DATA</div>
-          <div class="verdict-sub mono" id="verdict-sub"></div>
+
+        <ul class="checks" id="checks" aria-label="Vetting checks"></ul>
+
+        <div class="subsection" id="transit-panel">
+          <div class="subsection-head">
+            <h3>Next transits</h3>
+            <span class="card-meta mono" id="transit-period">—</span>
+          </div>
+          <div class="transit-list" id="transit-list"><p class="empty">Appears once a planet signal is found.</p></div>
         </div>
-        <ul class="checks" id="checks"></ul>
       </section>
 
-      <section class="panel card" data-tab="route" id="intel-panel">
-        <div class="panel-head"><h2>Network Intelligence</h2><span class="pill" id="intel-risk-pill" style="font-size:9px">COMPUTING…</span></div>
+      <section class="card card-intel" data-tab="route" id="intel-panel" aria-labelledby="intel-title">
+        <header class="card-head">
+          <h2 id="intel-title">Network intelligence</h2>
+          <span class="pill" id="intel-risk-pill">COMPUTING…</span>
+        </header>
         <div class="intel-grid">
-          <div class="intel-stat">
-            <div class="intel-k">24h Disconnect Risk</div>
-            <div class="intel-v mono" id="intel-risk">—</div>
-            <div class="intel-sub" id="intel-risk-sub">Monte Carlo · 300 trials</div>
+          <div class="stat">
+            <span class="stat-k">24 h disconnect risk</span>
+            <span class="stat-v mono" id="intel-risk">—</span>
+            <span class="intel-sub" id="intel-risk-sub">Monte Carlo · 300 trials</span>
           </div>
-          <div class="intel-stat">
-            <div class="intel-k">Path Diversity</div>
-            <div class="intel-v mono" id="intel-div">—</div>
-            <div class="intel-sub">node-disjoint routes</div>
+          <div class="stat">
+            <span class="stat-k">Path diversity</span>
+            <span class="stat-v mono" id="intel-div">—</span>
+            <span class="intel-sub">node-disjoint routes</span>
           </div>
         </div>
-        <div class="intel-section-label">Relay Criticality</div>
+        <h3 class="intel-section-label">Relay criticality</h3>
         <ul class="intel-relays" id="intel-relays"></ul>
-        <div class="intel-section-label">FEC Coding · Best Route</div>
+        <h3 class="intel-section-label">FEC coding · best route</h3>
         <div class="intel-fec mono" id="intel-fec">—</div>
-        <div class="intel-section-label">Debris Collision Forecast</div>
+        <h3 class="intel-section-label">Debris collision forecast</h3>
         <ul class="intel-collisions" id="intel-collisions"><li class="intel-muted">No debris loaded</li></ul>
-        <div class="intel-section-label">Optimal New Relay</div>
+        <h3 class="intel-section-label">Optimal new relay</h3>
         <div class="intel-relay-hint mono" id="intel-relay-hint">—</div>
       </section>
 
-      <section class="panel card" id="transit-panel">
-        <div class="panel-head"><h2>Transit Windows</h2><span class="muted mono" id="transit-period">—</span></div>
-        <div id="transit-list" class="transit-list"><div class="muted" style="padding:6px 0;font-size:11px">Waiting for planet detection…</div></div>
+      <section class="card card-log" data-tab="route" aria-labelledby="log-title">
+        <header class="card-head">
+          <h2 id="log-title">Event log</h2>
+          <span class="count mono" id="log-count">0</span>
+        </header>
+        <ol class="log" id="log"></ol>
       </section>
     </aside>
   </main>
 
   <script type="module" src="js/main.js"></script>
-<script type="module" src="js/tabs.js"></script>
+  <script type="module" src="js/tabs.js"></script>
 </body>
 </html>

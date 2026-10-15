@@ -16,6 +16,52 @@ function auToWorld(n) {
 
 function nodeColor(kind) { return new THREE.Color(NODE_COLOR[kind] ?? 0x7fb8d4); }
 
+// Shared canvas textures (built once). A soft radial falloff for glows, coronae and jamming
+// discs, and a linear fade for comet tails: smoother than stacked translucent spheres, which band.
+let _glowTex = null, _tailTex = null;
+function glowTexture() {
+  if (_glowTex) return _glowTex;
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d'), grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  grad.addColorStop(0, 'rgba(255,255,255,1)'); grad.addColorStop(0.25, 'rgba(255,255,255,0.55)');
+  grad.addColorStop(0.6, 'rgba(255,255,255,0.12)'); grad.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grad; g.fillRect(0, 0, 128, 128);
+  return (_glowTex = new THREE.CanvasTexture(c));
+}
+function tailTexture() {
+  if (_tailTex) return _tailTex;
+  const c = document.createElement('canvas'); c.width = 256; c.height = 64;
+  const g = c.getContext('2d');
+  const along = g.createLinearGradient(0, 0, 256, 0);
+  along.addColorStop(0, 'rgba(255,255,255,0.9)'); along.addColorStop(0.35, 'rgba(255,255,255,0.35)'); along.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = along; g.fillRect(0, 0, 256, 64);
+  g.globalCompositeOperation = 'destination-in'; // taper across the tail
+  const across = g.createLinearGradient(0, 0, 0, 64);
+  across.addColorStop(0, 'rgba(0,0,0,0)'); across.addColorStop(0.5, 'rgba(0,0,0,1)'); across.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = across; g.fillRect(0, 0, 256, 64);
+  return (_tailTex = new THREE.CanvasTexture(c));
+}
+function glowSprite(color, size, opacity) {
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: glowTexture(), color, transparent: true, opacity, depthWrite: false, blending: THREE.AdditiveBlending,
+  }));
+  sp.scale.setScalar(size);
+  sp.userData.size = size;
+  return sp;
+}
+
+// Deterministic per-id random numbers, so a swarm keeps its shape from frame to frame.
+function seeded(str) {
+  let h = 2166136261;
+  for (const ch of String(str)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  return () => {
+    h = (h + 0x6d2b79f5) | 0;
+    let t = Math.imul(h ^ (h >>> 15), 1 | h);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 export class Map3D {
   constructor(canvas) {
     this._canvas = canvas;
@@ -94,9 +140,8 @@ export class Map3D {
       new THREE.MeshStandardMaterial({ color: 0xffe8a3, emissive: 0xffd060, emissiveIntensity: 4, roughness: 0.05 }));
     this.scene.add(this._sunMesh);
     this._sunHalos = [];
-    for (const [r, op, col] of [[0.30, 0.14, 0xffa030],[0.52, 0.06, 0xff6010],[0.82, 0.028, 0xff3000],[1.2, 0.012, 0xff2000]]) {
-      const h = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 16),
-        new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: op, side: THREE.BackSide }));
+    for (const [size, op, col] of [[0.95, 0.9, 0xffd27a], [2.1, 0.45, 0xff9a3c], [4.2, 0.16, 0xff6a20]]) {
+      const h = glowSprite(col, size, op);
       this.scene.add(h);
       this._sunHalos.push(h);
     }
@@ -187,7 +232,8 @@ export class Map3D {
     // Clear dynamic group
     while (this._dynamicGroup.children.length) {
       const c = this._dynamicGroup.children[0];
-      c.geometry?.dispose(); c.material?.dispose?.();
+      if (!c.isSprite) c.geometry?.dispose(); // sprites share one geometry; textures are shared too
+      c.material?.dispose?.();
       this._dynamicGroup.remove(c);
     }
     this._debrisMeshes = [];
@@ -299,26 +345,25 @@ export class Map3D {
       const active = onPath.has(n.id);
       const emit = (NODE_EMIT[n.kind] ?? 0.55) * (active ? 2.5 : 1);
 
-      // Core
+      // Core. Earth is a lit, rougher sphere so the Sun gives it a day and a night side;
+      // relays and the observatory stay as small emissive beacons.
+      const isEarth = n.kind === 'earth';
       const mesh = new THREE.Mesh(
-        new THREE.SphereGeometry(r, 24, 24),
-        new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: emit, roughness: 0.12, metalness: 0.7 })
+        new THREE.SphereGeometry(isEarth ? r * 1.15 : r, 32, 32),
+        isEarth
+          ? new THREE.MeshStandardMaterial({ color: 0x2f7fe0, emissive: 0x0b2a5a, emissiveIntensity: active ? 1.1 : 0.7, roughness: 0.55, metalness: 0.05 })
+          : new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: emit, roughness: 0.12, metalness: 0.7 })
       );
       mesh.position.copy(pos);
       this._dynamicGroup.add(mesh);
-
-      // Glow halos — 3 layers
-      for (const [rr, op] of [
-        [NODE_GLOW[n.kind] ?? 0.16, active ? 0.22 : 0.08],
-        [(NODE_GLOW[n.kind] ?? 0.16) * 1.7, active ? 0.08 : 0.025],
-        [(NODE_GLOW[n.kind] ?? 0.16) * 2.6, active ? 0.03 : 0.008],
-      ]) {
-        const hm = new THREE.Mesh(
-          new THREE.SphereGeometry(rr, 10, 10),
-          new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: op, side: THREE.BackSide })
-        );
-        hm.position.copy(pos); this._dynamicGroup.add(hm);
+      if (isEarth) { // thin atmosphere
+        const atm = glowSprite(0x7fd1ff, r * 4.2, active ? 0.75 : 0.55);
+        atm.position.copy(pos); this._dynamicGroup.add(atm);
       }
+
+      // Glow: one soft sprite (brighter on the live route)
+      const glow = glowSprite(col, (NODE_GLOW[n.kind] ?? 0.16) * (active ? 3.4 : 2.4), active ? 0.5 : 0.22);
+      glow.position.copy(pos); this._dynamicGroup.add(glow);
 
       // Buffered indicator ring
       if (n.id === this._srcId && this._buffered > 0) {
@@ -337,35 +382,56 @@ export class Map3D {
 
     // Debris
     for (const d of snap.debris ?? []) {
-      const n = d.kind === 'comet' ? 120 : 260;
-      const pos = new Float32Array(n * 3);
-      const angles = new Float32Array(n), dists = new Float32Array(n);
-      for (let i = 0; i < n; i++) {
-        const a = Math.random() * Math.PI * 2;
-        const dist = Math.sqrt(Math.random()) * d.r * 0.9;
-        angles[i] = a; dists[i] = dist;
-        pos[i*3]   = d.x + Math.cos(a) * dist;
-        pos[i*3+1] = (Math.random() - 0.5) * 0.05;
-        pos[i*3+2] = -(d.y + Math.sin(a) * dist);
-      }
-      const geo = new THREE.BufferGeometry();
-      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-      const col = d.kind === 'comet' ? 0xd0b0ff : 0xf97316;
-      const sz  = d.kind === 'comet' ? 0.035 : 0.026;
-      const pts = new THREE.Points(geo,
-        new THREE.PointsMaterial({ color: col, size: sz, sizeAttenuation: true, transparent: true, opacity: 0.85 }));
-      pts.userData.debris = { d, angles, dists };
-      this._dynamicGroup.add(pts);
-      this._debrisMeshes.push(pts);
+      const comet = d.kind === 'comet';
+      const rnd = seeded(d.id);
 
-      if (d.kind === 'comet') {
-        const nuc = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 10),
-          new THREE.MeshStandardMaterial({ color: 0xeee0ff, emissive: 0xc0a0ff, emissiveIntensity: 2 }));
-        nuc.position.set(d.x, 0.05, -d.y); this._dynamicGroup.add(nuc);
-        // Comet glow
-        const cg = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8),
-          new THREE.MeshBasicMaterial({ color: 0xc090ff, transparent: true, opacity: 0.08, side: THREE.BackSide }));
-        cg.position.set(d.x, 0.05, -d.y); this._dynamicGroup.add(cg);
+      // Jamming footprint: a soft red disc of radius r on the ecliptic (legend: "Jamming")
+      const disc = new THREE.Mesh(new THREE.CircleGeometry(d.r, 48),
+        new THREE.MeshBasicMaterial({ map: glowTexture(), color: 0xff5a5a, transparent: true, opacity: comet ? 0.35 : 0.45,
+          depthWrite: false, blending: THREE.AdditiveBlending }));
+      disc.rotation.x = -Math.PI / 2; disc.position.set(d.x, -0.005, -d.y);
+      this._dynamicGroup.add(disc);
+
+      // Particles: fine dust plus fewer, larger rocks of varied tone (asteroids) or ice (comets).
+      // Positions come from a per-id seed so a swarm keeps its shape; _frame() spins it.
+      const layers = comet
+        ? [[70, 0.025, 0.45, [0xd8e8ff, 0xb8c8ff]]]
+        : [[200, 0.018, 0.9, [0x8a7a68, 0x6f6458]], [55, 0.045, 0.85, [0xb39a7c, 0x8f7a63, 0x6d6157, 0xc2a882]]];
+      for (const [n, sz, spread, palette] of layers) {
+        const pos = new Float32Array(n * 3), colors = new Float32Array(n * 3);
+        const angles = new Float32Array(n), dists = new Float32Array(n);
+        const c = new THREE.Color();
+        for (let i = 0; i < n; i++) {
+          const a = rnd() * Math.PI * 2, dist = Math.sqrt(rnd()) * d.r * spread;
+          angles[i] = a; dists[i] = dist;
+          pos[i*3] = d.x + Math.cos(a) * dist; pos[i*3+1] = (rnd() - 0.5) * 0.06; pos[i*3+2] = -(d.y + Math.sin(a) * dist);
+          c.setHex(palette[Math.floor(rnd() * palette.length)]).multiplyScalar(0.8 + rnd() * 0.4);
+          colors[i*3] = c.r; colors[i*3+1] = c.g; colors[i*3+2] = c.b;
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        const pts = new THREE.Points(geo, new THREE.PointsMaterial({ size: sz, vertexColors: true, sizeAttenuation: true, transparent: true, opacity: 0.95 }));
+        pts.userData.debris = { d, angles, dists };
+        this._dynamicGroup.add(pts);
+        this._debrisMeshes.push(pts);
+      }
+
+      if (comet) {
+        const at = new THREE.Vector3(d.x, 0.05, -d.y);
+        const nuc = new THREE.Mesh(new THREE.SphereGeometry(0.04, 12, 12),
+          new THREE.MeshStandardMaterial({ color: 0xf2f6ff, emissive: 0xbcd4ff, emissiveIntensity: 2.2 }));
+        nuc.position.copy(at); this._dynamicGroup.add(nuc);
+        const coma = glowSprite(0xbfd8ff, 0.42, 0.75);
+        coma.position.copy(at); this._dynamicGroup.add(coma);
+        // Tail points away from the Sun (the origin), as real comet tails do
+        const len = 0.9 + d.r * 2, dir = Math.atan2(d.y, d.x);
+        const tailGeo = new THREE.PlaneGeometry(len, 0.22);
+        tailGeo.translate(len / 2, 0, 0); tailGeo.rotateX(-Math.PI / 2);
+        const tail = new THREE.Mesh(tailGeo, new THREE.MeshBasicMaterial({ map: tailTexture(), color: 0xa8c8ff, transparent: true, opacity: 0.8,
+          depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
+        tail.position.copy(at); tail.rotation.y = dir;
+        this._dynamicGroup.add(tail);
       }
     }
   }
@@ -389,14 +455,18 @@ export class Map3D {
     this._extent = Math.max(1.5, ...nodes.map(n => Math.hypot(n.x - cx, n.y - cy))) + 0.35;
   }
 
-  // Camera distance that fits a disc of radius _extent, seen from the orbit's elevation, inside
-  // both the vertical and the horizontal field of view.
+  // Camera distance that keeps a disc of radius _extent inside the view from any orbit angle,
+  // with perspective: the point nearest the camera (distance D - R·cos e) projects lowest, so
+  // R·sin e / (D - R·cos e) must stay within FILL of the half-height; side points sit at about
+  // D and need R / D within FILL of the half-width. FILL leaves room for the map overlays.
   _fitDistance() {
+    const FILL = 0.8;
     const vHalf = THREE.MathUtils.degToRad(this.camera.fov / 2);
     const hHalf = Math.atan(Math.tan(vHalf) * this.camera.aspect);
-    const sinElev = CAM_Y / Math.hypot(CAM_R, CAM_Y);
-    const R = this._extent;
-    return 1.08 * Math.max(R / Math.tan(hHalf), (R * sinElev + 0.3) / Math.tan(vHalf), 3);
+    const e = Math.atan2(CAM_Y, CAM_R), R = this._extent;
+    const nearFit = R * Math.cos(e) + R * Math.sin(e) / (FILL * Math.tan(vHalf));
+    const sideFit = R / (FILL * Math.tan(hHalf));
+    return Math.max(nearFit, sideFit, 3);
   }
 
   _frame(t) {
@@ -421,7 +491,7 @@ export class Map3D {
     if (this._sunMesh) {
       const s = 1 + 0.012 * Math.sin(dt * 1.1);
       this._sunMesh.scale.setScalar(s);
-      if (this._sunHalos?.[0]) this._sunHalos[0].scale.setScalar(1 + 0.04 * Math.sin(dt * 0.7));
+      if (this._sunHalos?.[0]) this._sunHalos[0].scale.setScalar(this._sunHalos[0].userData.size * (1 + 0.04 * Math.sin(dt * 0.7)));
     }
 
     // Spin debris

@@ -749,7 +749,9 @@ function pickerKeys(e) {
 function setPlaying(on) {
   S.playing = on;
   const b = $("play-btn");
-  b.textContent = on ? "❚❚ Pause" : "▶ Play"; b.setAttribute("aria-pressed", String(on));
+  b.querySelector("use").setAttribute("href", on ? "#i-pause" : "#i-play");
+  b.querySelector(".btn-label").textContent = on ? "Pause" : "Play";
+  b.setAttribute("aria-pressed", String(on));
 }
 
 function setSpeed(v) {
@@ -782,7 +784,8 @@ function setTool(t) {
   els.map.classList.toggle("armed", !!S.tool);
   const hint = $("map-hint");
   hint.hidden = !S.tool;
-  hint.textContent = S.tool === "comet" ? "Click on the map to launch a comet (Esc to cancel)" : "Click on the map to drop an asteroid swarm (Esc to cancel)";
+  const verb = matchMedia("(pointer: coarse)").matches ? "Tap" : "Click";
+  hint.textContent = S.tool === "comet" ? `${verb} the map to launch a comet · Esc cancels` : `${verb} the map to drop an asteroid swarm · Esc cancels`;
 }
 
 function addDebrisAt(x, y, kind) {
@@ -837,6 +840,15 @@ function setHeatmap(on) {
   b.classList.toggle("active", on); b.setAttribute("aria-pressed", String(on));
   heat.hidden = !on;
   if (on) drawJamHeatmap(); else heat.getContext("2d").clearRect(0, 0, heat.width, heat.height);
+}
+
+// Disjoint-path count on the map overlay: a five-dot meter plus the number.
+const DIVERSITY_MAX = 5;
+function renderDiversity(n) {
+  $("diversity").textContent = String(n);
+  const dots = $("diversity-dots");
+  if (dots.childElementCount !== DIVERSITY_MAX) dots.replaceChildren(...Array.from({ length: DIVERSITY_MAX }, () => document.createElement("i")));
+  [...dots.children].forEach((d, i) => d.classList.toggle("on", i < n));
 }
 
 function bindControls() {
@@ -936,13 +948,14 @@ function frame(now) {
       renderHopThreats($("hop-threats"), S.best, S.links, nameOf);
       // Path diversity
       const div = realSim.pathDiversity ? realSim.pathDiversity(snap) : null;
-      if (div != null) $("diversity").textContent = `paths: ${"●".repeat(div)}${"○".repeat(Math.max(0, 5 - div))} ${div}`;
+      if (div != null) renderDiversity(div);
       // Transit windows (refresh each frame so countdown stays live)
       if (S.detBls?.best && S.snap && realSim.predictTransitWindows) {
         S.transitWindows = realSim.predictTransitWindows(S.snap, S.detBls.best.period, S.detBls.best.t0, 6, S.detBls.best.duration);
         renderTransitWindows($("transit-list"), $("transit-period"), S.transitWindows, S.detBls.best.period, S.snap.t);
       }
-      $("clock").textContent = `T+${(S.snap.t ?? 0).toFixed(2)} d · ${S.packets.length} in flight`;
+      $("clock").textContent = `T+${(S.snap.t ?? 0).toFixed(2)} d`;
+      $("inflight").textContent = String(S.packets.length);
       renderIntelPanel(S.snap);
       if (S.heatmap && now - heatDrawAt > HEAT_EVERY_MS) { drawJamHeatmap(); heatDrawAt = now; }
     }
