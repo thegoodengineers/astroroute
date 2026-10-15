@@ -1,0 +1,14 @@
+type,scenario,metric,value
+delivery,default,live_percent,100.0
+delivery,default,fixed_percent,81.8
+delivery,storm,live_percent,100.0
+delivery,storm,fixed_percent,81.8
+bls,kepler-6,miss,N/A
+bls,kepler-17,miss,N/A
+bls,tres-2,miss,N/A
+bls,hat-p-7,miss,N/A
+bls,wasp-18,miss,N/A
+bls,wasp-43,miss,N/A
+bls,kic-6756669,miss,N/A
+bls,kic-8801343,miss,N/A
+bls,toi-1163-01,miss,N/A
